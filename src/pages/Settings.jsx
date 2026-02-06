@@ -90,13 +90,18 @@ const Settings = () => {
       }
 
       const prompt = `
-        Based on the following notes, extract spider care data.
+        Based on the following notes, extract spider care data. 
+        Note that these are often screenshots or photos, so they may contain UI noise, navigation arrows, or random OCR artifacts (like "< Ra", "@ A 5 :", etc.).
+        
         Spiders currently in the journal: ${activeSpiders.map(s => `ID: ${s.id}, Name: ${s.name}`).join('; ')}
         Notes: "${ocrText}"
         
         Rules:
-        1. Identify spiders. If a spider is mentioned but not in the ID list above, create a temporary ID starting with "new_".
-        2. Be strict. If you are unsure about a spider's identity or the care action (fed/watered/molted), include a "warning".
+        1. Ignore any text that does not appear to be a date, a spider's name, or a care task (feeding, watering, molting, notes).
+        2. Ignore UI elements, navigation symbols, or random strings of characters that don't make sense in a care context.
+        3. Identify spiders. If a spider is mentioned but not in the ID list above, create a temporary ID starting with "new_".
+        4. Match names loosely (e.g., "Ed" might be "Edgar").
+        5. Be strict about data validity. 
         
         Return ONLY a JSON object in this format:
         {
