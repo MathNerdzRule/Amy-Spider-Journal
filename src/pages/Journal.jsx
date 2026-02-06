@@ -23,7 +23,7 @@ const Journal = () => {
   return (
     <div className="journal-page">
       <header className="page-header">
-        <h1>Spider Journal</h1>
+        <h1>Amy's Spider Journal</h1>
         <div className="date-selector">
           <button onClick={handlePrevDay} className="btn-icon"><ChevronLeft /></button>
           <span onClick={handleToday} style={{ cursor: 'pointer' }}>

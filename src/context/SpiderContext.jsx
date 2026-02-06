@@ -141,6 +141,10 @@ export const SpiderProvider = ({ children }) => {
     }
   };
 
+  const deleteSpider = (id) => {
+    setActiveSpiders(prev => prev.filter(s => s.id !== id));
+  };
+
   return (
     <SpiderContext.Provider value={{
       activeSpiders,
@@ -157,7 +161,8 @@ export const SpiderProvider = ({ children }) => {
       markAsDeceased,
       exportData,
       importData,
-      addSpider
+      addSpider,
+      deleteSpider
     }}>
       {children}
     </SpiderContext.Provider>

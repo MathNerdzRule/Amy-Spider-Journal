@@ -11,13 +11,16 @@ import {
   Camera, 
   FileUp, 
   Loader2, 
-  Sparkles 
+  Sparkles,
+  Bug,
+  Trash2
 } from 'lucide-react';
 
 const Settings = () => {
   const { 
     activeSpiders, 
     addSpider, 
+    deleteSpider,
     exportData, 
     importData,
     batchUpdateEntries,
@@ -163,7 +166,7 @@ const Settings = () => {
 
       <section className="settings-section glass-card" style={{ marginTop: '2rem' }}>
         <div className="section-header">
-          <Plus size={24} className="accent-icon" />
+          <Bug size={24} className="accent-icon" />
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
             <h2>Spiders</h2>
             <button onClick={() => setShowAddModal(true)} className="btn-primary glass" style={{ padding: '0.5rem 1rem' }}>
@@ -180,6 +183,13 @@ const Settings = () => {
             activeSpiders.map(spider => (
               <div key={spider.id} className="spider-item glass">
                 <span>{spider.name}</span>
+                <button 
+                  onClick={() => deleteSpider(spider.id)} 
+                  className="btn-icon delete-btn"
+                  title="Remove Spider"
+                >
+                  <Trash2 size={16} color="var(--error)" />
+                </button>
               </div>
             ))
           )}
@@ -205,7 +215,7 @@ const Settings = () => {
             <input type="file" accept=".json" onChange={handleImport} hidden />
           </label>
 
-          <label className="btn-primary glass-btn" style={{ background: 'var(--accent-primary)', color: 'white' }}>
+          <label className="btn-accent-solid">
             <Camera size={18} />
             <span>Scan Notes</span>
             <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
