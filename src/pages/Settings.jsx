@@ -89,21 +89,21 @@ const Settings = () => {
         return;
       }
 
+      const today = format(new Date(), 'yyyy-MM-dd');
       const prompt = `
         Based on the following notes, extract spider care data. 
-        Note that these are often screenshots or photos, so they may contain UI noise, navigation arrows, or random OCR artifacts (like "< Ra", "@ A 5 :", etc.).
+        Notes: "${ocrText}"
+        Current Year: ${new Date().getFullYear()}
         
         Spiders currently in the journal: ${activeSpiders.map(s => `ID: ${s.id}, Name: ${s.name}`).join('; ')}
-        Notes: "${ocrText}"
         
         Rules:
-        1. Ignore any text that does not appear to be a date, a spider's name, or a care task (feeding, watering, molting, notes).
-        2. Ignore UI elements, navigation symbols, or random strings of characters that don't make sense in a care context.
-        3. Identify spiders. If a spider is mentioned but not in the ID list above, create a temporary ID starting with "new_".
-        4. Match names loosely (e.g., "Ed" might be "Edgar").
-        5. Be strict about data validity. 
+        1. Identify the date. Use YYYY-MM-DD format. If no date is found, use "${today}".
+        2. Identify care actions: feeding/fed, watering/watered, molting/molted.
+        3. Match spiders to the provided list. If you find a new spider, use spiderId: "new_[name]".
+        4. If you are unsure about an entry, add a specific warning for that entry.
         
-        Return ONLY a JSON object in this format:
+        Return a JSON object:
         {
           "date": "YYYY-MM-DD",
           "entries": [
@@ -116,8 +116,7 @@ const Settings = () => {
               "notes": "string",
               "warning": "string | null" 
             }
-          ],
-          "generalWarning": "string | null"
+          ]
         }
       `;
 
@@ -131,30 +130,52 @@ const Settings = () => {
       });
 
       const data = await response.json();
-      const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      const parsed = JSON.parse(resultText);
+      const rawResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       
-      if (parsed.date && parsed.entries) {
+      // Robust JSON extraction: Find the first '{' and the last '}'
+      let resultText = rawResponse;
+      const startIdx = rawResponse.indexOf('{');
+      const endIdx = rawResponse.lastIndexOf('}');
+      
+      if (startIdx !== -1 && endIdx !== -1) {
+        resultText = rawResponse.substring(startIdx, endIdx + 1);
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(resultText);
+      } catch (e) {
+        console.error("JSON Parse Error. Raw response:", rawResponse);
+        alert(`Failed to parse AI response. \n\nAI returned: ${rawResponse.substring(0, 100)}...`);
+        setIsAnalyzing(false);
+        return;
+      }
+      
+      if (parsed && (parsed.entries || parsed.spiders)) {
+        // Fallback for date if missing in response
+        const entryDate = parsed.date || today;
         const warnings = [];
         if (parsed.generalWarning) warnings.push(`System: ${parsed.generalWarning}`);
         
         const finalEntries = {};
         const newSpiderNames = [];
-        const entryMapping = []; // { tempId, spiderData }
+        const entryMapping = [];
 
-        // First pass: identify new spiders and prepare entries
-        parsed.entries.forEach(entry => {
+        // Ensure entries is an array even if AI returned an object (flexible parsing)
+        const rawEntries = Array.isArray(parsed.entries) ? parsed.entries : [];
+        
+        rawEntries.forEach(entry => {
           if (entry.warning) warnings.push(`${entry.spiderName}: ${entry.warning}`);
           
-          if (entry.spiderId.startsWith('new_')) {
+          if (entry.spiderId && entry.spiderId.startsWith('new_')) {
             newSpiderNames.push(entry.spiderName);
             entryMapping.push(entry);
-          } else {
+          } else if (entry.spiderId) {
             finalEntries[entry.spiderId] = {
-              feeding: entry.feeding,
-              watering: entry.watering,
-              molting: entry.molting,
-              notes: entry.notes
+              feeding: !!entry.feeding,
+              watering: !!entry.watering,
+              molting: !!entry.molting,
+              notes: entry.notes || ''
             };
           }
         });
@@ -177,10 +198,10 @@ const Settings = () => {
         }
 
         // Save entries
-        batchUpdateEntries(parsed.date, finalEntries);
+        batchUpdateEntries(entryDate, finalEntries);
 
         // Show comprehensive alert
-        let message = `Import successful for ${parsed.date}!`;
+        let message = `Import successful for ${entryDate}!`;
         if (newSpiderNames.length > 0) {
           message += `\n\nAdded new spiders: ${[...new Set(newSpiderNames)].join(', ')}`;
         }
