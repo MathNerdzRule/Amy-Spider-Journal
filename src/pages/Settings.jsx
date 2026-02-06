@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
 import { useSpider } from '../context/SpiderContext';
-import { Download, Upload, Plus, Sun, Moon, Monitor, Trash2 } from 'lucide-react';
+import { createWorker } from 'tesseract.js';
+import { 
+  Download, 
+  Upload, 
+  Plus, 
+  Sun, 
+  Moon, 
+  Monitor, 
+  Camera, 
+  FileUp, 
+  Loader2, 
+  Sparkles 
+} from 'lucide-react';
 
 const Settings = () => {
   const { 
@@ -8,12 +20,18 @@ const Settings = () => {
     addSpider, 
     exportData, 
     importData,
+    batchUpdateEntries,
     theme,
     setTheme
   } = useSpider();
 
   const [newSpiderName, setNewSpiderName] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  
+  // OCR States
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [ocrText, setOcrText] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleAddSpider = (e) => {
     e.preventDefault();
@@ -33,6 +51,78 @@ const Settings = () => {
       importData(event.target.result);
     };
     reader.readAsText(file);
+  };
+
+  // OCR Logic
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsProcessing(true);
+    try {
+      const worker = await createWorker('eng');
+      const { data: { text } } = await worker.recognize(file);
+      setOcrText(text);
+      await worker.terminate();
+    } catch (err) {
+      console.error(err);
+      alert('Error processing image');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // AI Entry Creation Logic
+  const createEntriesFromText = async () => {
+    if (!ocrText) return;
+    setIsAnalyzing(true);
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        alert("API Key not found. Please set VITE_GEMINI_API_KEY.");
+        setIsAnalyzing(false);
+        return;
+      }
+
+      const prompt = `
+        Based on the following notes, extract spider care data.
+        Spiders currently in the journal: ${activeSpiders.map(s => `${s.id}: ${s.name}`).join(', ')}
+        Notes: "${ocrText}"
+        
+        Return ONLY a JSON object in this format:
+        {
+          "date": "YYYY-MM-DD",
+          "entries": {
+            "spiderId": { "feeding": boolean, "watering": boolean, "molting": boolean, "notes": "string" }
+          }
+        }
+        If multiple dates are found, return only the most recent one.
+      `;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { response_mime_type: "application/json" }
+        })
+      });
+
+      const data = await response.json();
+      const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parsed = JSON.parse(resultText);
+      
+      if (parsed.date && parsed.entries) {
+        batchUpdateEntries(parsed.date, parsed.entries);
+        alert("Entries created successfully for " + parsed.date);
+        setOcrText('');
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to parse entries. AI might have had trouble with the format.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -99,22 +189,54 @@ const Settings = () => {
       <section className="settings-section glass-card" style={{ marginTop: '2rem' }}>
         <div className="section-header">
           <Download size={24} className="accent-icon" />
-          <h2>Data</h2>
+          <h2>Data Management</h2>
         </div>
-        <p>Backup or restore your care logs.</p>
+        <p>Import/Export backup files or scan physical notes.</p>
         
         <div className="data-actions">
           <button onClick={exportData} className="btn-secondary glass-btn">
             <Download size={18} />
-            <span>Export</span>
+            <span>Export JSON</span>
           </button>
           
           <label className="btn-secondary glass-btn">
             <Upload size={18} />
-            <span>Import</span>
+            <span>Import JSON</span>
             <input type="file" accept=".json" onChange={handleImport} hidden />
           </label>
+
+          <label className="btn-primary glass-btn" style={{ background: 'var(--accent-primary)', color: 'white' }}>
+            <Camera size={18} />
+            <span>Scan Notes</span>
+            <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
+          </label>
         </div>
+
+        {isProcessing && (
+          <div className="processing-state" style={{ marginTop: '1rem' }}>
+            <Loader2 className="spin" />
+            <span>Parsing text from image...</span>
+          </div>
+        )}
+
+        {ocrText && (
+          <div className="ocr-result glass" style={{ marginTop: '1rem' }}>
+            <div className="section-header" style={{ marginBottom: '0.5rem' }}>
+              <Sparkles size={18} className="accent-icon" />
+              <h3 style={{ margin: 0 }}>Scanned Text</h3>
+            </div>
+            <pre style={{ maxHeight: '150px' }}>{ocrText}</pre>
+            <div className="data-actions" style={{ marginTop: '1rem' }}>
+              <button className="btn-primary" onClick={createEntriesFromText} disabled={isAnalyzing}>
+                {isAnalyzing ? <Loader2 className="spin" /> : <Sparkles size={16} />}
+                <span>Process with AI</span>
+              </button>
+              <button className="btn-secondary" onClick={() => setOcrText('')}>
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {showAddModal && (
