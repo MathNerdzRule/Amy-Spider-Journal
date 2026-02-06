@@ -270,18 +270,18 @@ const Settings = () => {
         <p>Import/Export backup files or scan physical notes.</p>
         
         <div className="data-actions">
-          <button onClick={exportData} className="btn-secondary glass-btn">
-            <Download size={18} />
-            <span>Export JSON</span>
-          </button>
-          
           <label className="btn-secondary glass-btn">
             <Upload size={18} />
             <span>Import JSON</span>
             <input type="file" accept=".json" onChange={handleImport} hidden />
           </label>
 
-          <label className="btn-accent-solid">
+          <button onClick={exportData} className="btn-secondary glass-btn">
+            <Download size={18} />
+            <span>Export JSON</span>
+          </button>
+          
+          <label className="btn-secondary glass-btn">
             <Camera size={18} />
             <span>Scan Notes</span>
             <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
