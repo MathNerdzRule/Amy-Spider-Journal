@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSpider } from '../context/SpiderContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   format, 
   startOfMonth, 
@@ -16,6 +17,7 @@ import { ChevronLeft, ChevronRight, Activity } from 'lucide-react';
 
 const CalendarView = () => {
   const { entries, setSelectedDate } = useSpider();
+  const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const monthStart = startOfMonth(currentMonth);
@@ -74,12 +76,8 @@ const CalendarView = () => {
                 key={day.toString()} 
                 className={`calendar-day ${!isSameMonth(day, monthStart) ? 'outside' : ''} ${isSameDay(day, new Date()) ? 'today' : ''}`}
                 onClick={() => {
-                  if (isSameMonth(day, monthStart)) {
-                    setSelectedDate(day);
-                    // Navigate to home? Or just set date and stay?
-                    // Usually user wants to go to that day's journal.
-                    window.location.hash = '/'; // Simple way to navigate if using HashRouter, but we are using BrowserRouter.
-                  }
+                  setSelectedDate(day);
+                  navigate('/');
                 }}
               >
                 <span className="day-number">{format(day, 'd')}</span>
