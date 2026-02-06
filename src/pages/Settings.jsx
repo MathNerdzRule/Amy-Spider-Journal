@@ -129,10 +129,19 @@ const Settings = () => {
         })
       });
 
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(`Gemini API Error: ${response.status} - ${errData.error?.message || response.statusText}`);
+      }
+
       const data = await response.json();
       const rawResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       
-      // Robust JSON extraction: Find the first '{' and the last '}'
+      if (!rawResponse) {
+        throw new Error("AI returned an empty response. This usually happens if the prompt is blocked or the text is too confusing.");
+      }
+
+      // Robust JSON extraction
       let resultText = rawResponse;
       const startIdx = rawResponse.indexOf('{');
       const endIdx = rawResponse.lastIndexOf('}');
@@ -145,27 +154,23 @@ const Settings = () => {
       try {
         parsed = JSON.parse(resultText);
       } catch (e) {
-        console.error("JSON Parse Error. Raw response:", rawResponse);
-        alert(`Failed to parse AI response. \n\nAI returned: ${rawResponse.substring(0, 100)}...`);
-        setIsAnalyzing(false);
-        return;
+        throw new Error(`JSON Parse Error: ${e.message}\n\nAI Response: ${rawResponse.substring(0, 100)}...`);
       }
       
-      if (parsed && (parsed.entries || parsed.spiders)) {
-        // Fallback for date if missing in response
+      if (parsed) {
         const entryDate = parsed.date || today;
         const warnings = [];
-        if (parsed.generalWarning) warnings.push(`System: ${parsed.generalWarning}`);
+        // if (parsed.generalWarning) warnings.push(`System: ${parsed.generalWarning}`); // Removed as per instruction, not in new code
         
         const finalEntries = {};
         const newSpiderNames = [];
         const entryMapping = [];
 
-        // Ensure entries is an array even if AI returned an object (flexible parsing)
         const rawEntries = Array.isArray(parsed.entries) ? parsed.entries : [];
         
         rawEntries.forEach(entry => {
-          if (entry.warning) warnings.push(`${entry.spiderName}: ${entry.warning}`);
+          if (!entry) return;
+          if (entry.warning) warnings.push(`${entry.spiderName || 'Unknown'}: ${entry.warning}`);
           
           if (entry.spiderId && entry.spiderId.startsWith('new_')) {
             newSpiderNames.push(entry.spiderName);
@@ -180,27 +185,23 @@ const Settings = () => {
           }
         });
 
-        // Add new spiders to system
         if (newSpiderNames.length > 0) {
           const createdSpiders = batchAddSpiders([...new Set(newSpiderNames)]);
-          // Map temp IDs to real IDs
           entryMapping.forEach(entry => {
             const realSpider = createdSpiders.find(s => s.name === entry.spiderName);
             if (realSpider) {
               finalEntries[realSpider.id] = {
-                feeding: entry.feeding,
-                watering: entry.watering,
-                molting: entry.molting,
-                notes: entry.notes
+                feeding: !!entry.feeding,
+                watering: !!entry.watering,
+                molting: !!entry.molting,
+                notes: entry.notes || ''
               };
             }
           });
         }
 
-        // Save entries
         batchUpdateEntries(entryDate, finalEntries);
 
-        // Show comprehensive alert
         let message = `Import successful for ${entryDate}!`;
         if (newSpiderNames.length > 0) {
           message += `\n\nAdded new spiders: ${[...new Set(newSpiderNames)].join(', ')}`;
@@ -211,10 +212,12 @@ const Settings = () => {
         
         alert(message);
         setOcrText('');
+      } else {
+        throw new Error("AI response was valid JSON but empty or in the wrong format.");
       }
     } catch (err) {
-      console.error(err);
-      alert("Failed to parse entries. AI might have had trouble with the format or quality of the image.");
+      console.error("AI Parse Error:", err);
+      alert(`Debug Info:\n${err.message}`);
     } finally {
       setIsAnalyzing(false);
     }
