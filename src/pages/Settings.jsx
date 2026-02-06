@@ -306,7 +306,22 @@ const Settings = () => {
               <Sparkles size={18} className="accent-icon" />
               <h3 style={{ margin: 0 }}>Scanned Text</h3>
             </div>
-            <pre style={{ maxHeight: '150px' }}>{ocrText}</pre>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+              Verify or fix the text below before processing:
+            </p>
+            <textarea 
+              value={ocrText} 
+              onChange={(e) => setOcrText(e.target.value)}
+              className="glass"
+              style={{ 
+                width: '100%', 
+                minHeight: '150px', 
+                padding: '0.75rem',
+                fontSize: '0.9rem',
+                fontFamily: 'monospace',
+                background: 'rgba(0,0,0,0.2)'
+              }}
+            />
             <div className="data-actions" style={{ marginTop: '1rem' }}>
               <button className="btn-primary" onClick={createEntriesFromText} disabled={isAnalyzing}>
                 {isAnalyzing ? <Loader2 className="spin" /> : <Sparkles size={16} />}
