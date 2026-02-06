@@ -1,24 +1,37 @@
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap");
 
 :root {
-  --bg-primary: #0a0a0c;
-  --bg-secondary: #16161a;
-  --bg-tertiary: #1f1f27;
   --accent-primary: #7c4dff;
   --accent-secondary: #ff4081;
-  --text-primary: #ffffff;
-  --text-secondary: #a0a0ab;
-  --border-color: #2e2e3a;
   --success: #00e676;
   --warning: #ffea00;
   --error: #ff5252;
+  --font-main: 'Outfit', sans-serif;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
 
+:root.dark {
+  --bg-primary: #0a0a0c;
+  --bg-secondary: #16161a;
+  --bg-tertiary: #1f1f27;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0ab;
+  --border-color: #2e2e3a;
   --glass-bg: rgba(255, 255, 255, 0.03);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
 
-  --font-main: "Outfit", sans-serif;
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+:root.light {
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f5;
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  --border-color: #dee2e6;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -615,4 +628,36 @@ textarea:focus {
   padding: 2px 6px;
   border-radius: 4px;
   font-family: monospace;
+}
+
+/* Theme Selector */
+.theme-selector {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--bg-tertiary);
+  padding: 0.25rem;
+  border-radius: 12px;
+}
+
+.theme-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.theme-btn.active {
+  background: var(--bg-secondary);
+  color: var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.theme-btn:not(.active):hover {
+  background: rgba(255, 255, 255, 0.05);
 }

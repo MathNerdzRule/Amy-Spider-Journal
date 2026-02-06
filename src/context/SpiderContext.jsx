@@ -8,10 +8,11 @@ export const useSpider = () => useContext(SpiderContext);
 export const SpiderProvider = ({ children }) => {
   const [activeSpiders, setActiveSpiders] = useState(() => {
     const saved = localStorage.getItem('activeSpiders');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', name: 'Edgar' },
-      { id: '2', name: 'Allan' }
-    ];
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('theme') || 'system';
   });
 
   const [deceasedSpiders, setDeceasedSpiders] = useState(() => {
@@ -123,11 +124,30 @@ export const SpiderProvider = ({ children }) => {
     });
   };
 
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    applyTheme(theme);
+  }, [theme]);
+
+  const applyTheme = (currentTheme) => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+
+    if (currentTheme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(currentTheme);
+    }
+  };
+
   return (
     <SpiderContext.Provider value={{
       activeSpiders,
       deceasedSpiders,
       entries,
+      theme,
+      setTheme,
       selectedDate,
       setSelectedDate,
       dateKey,
