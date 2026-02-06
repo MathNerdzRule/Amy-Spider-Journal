@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useSpider } from '../context/SpiderContext';
+import { useTarantula } from '../context/TarantulaContext';
 import { Wand2, Loader2, Sparkles, TrendingUp } from 'lucide-react';
 import { subMonths } from 'date-fns';
 
 const Analysis = () => {
-  const { entries, activeSpiders } = useSpider();
+  const { entries, activeSpooders } = useTarantula();
   const [analysisResult, setAnalysisResult] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -23,8 +23,8 @@ const Analysis = () => {
       const relevantEntries = Object.entries(entries).filter(([date]) => new Date(date) >= twoMonthsAgo);
       
       const prompt = `
-        Analyze the following spider care logs for the past 2 months and identify trends for each spider.
-        Spiders: ${activeSpiders.map(s => s.name).join(', ')}
+        Analyze the following tarantula ("spooder") care logs for the past 2 months and identify trends for each spooder.
+        Spooders: ${activeSpooders.map(s => s.name).join(', ')}
         Logs: ${JSON.stringify(relevantEntries)}
         
         Provide a concise summary of trends (e.g., molting frequency, hydration needs, feeding regularity).

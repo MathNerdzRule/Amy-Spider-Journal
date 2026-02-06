@@ -217,18 +217,18 @@ main {
   margin-top: 1rem;
 }
 
-.spider-table {
+.spooder-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
 
-.spider-table th, .spider-table td {
+.spooder-table th, .spooder-table td {
   padding: 1.25rem 1rem;
   border-bottom: 1px solid var(--border-color);
 }
 
-.spider-table th {
+.spooder-table th {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -253,7 +253,7 @@ main {
   color: var(--accent-primary);
 }
 
-.spider-name {
+.spooder-name {
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -414,6 +414,54 @@ textarea:focus {
   margin-top: 2rem;
 }
 
+.note-modal h2 {
+  margin-bottom: 0.25rem;
+}
+
+.modal-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.note-modal textarea {
+  min-height: 200px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 1rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.notes-trigger {
+  position: relative;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.notes-trigger.has-notes {
+  color: var(--accent-primary);
+}
+
+.note-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-secondary);
+  border-radius: 50%;
+  border: 1px solid var(--bg-secondary);
+}
+
 /* Empty State */
 .empty-state {
   display: flex;
@@ -569,12 +617,12 @@ textarea:focus {
   gap: 1.5rem;
 }
 
-.add-spider-form {
+.add-spooder-form {
   display: flex;
   gap: 1rem;
 }
 
-.add-spider-form input {
+.add-spooder-form input {
   flex: 1;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
@@ -584,13 +632,13 @@ textarea:focus {
   font-family: inherit;
 }
 
-.active-spiders-list {
+.active-spooders-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
 
-.spider-item {
+.spooder-item {
   padding: 0.5rem 1rem;
   border-radius: 10px;
   background: var(--bg-tertiary);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSpider } from '../context/SpiderContext';
+import { useTarantula } from '../context/TarantulaContext';
 import { createWorker } from 'tesseract.js';
 import { format } from 'date-fns';
 import { 
@@ -20,18 +20,18 @@ import {
 
 const Settings = () => {
   const { 
-    activeSpiders, 
-    addSpider, 
-    batchAddSpiders,
-    deleteSpider,
+    activeSpooders, 
+    addSpooder, 
+    batchAddSpooders,
+    deleteSpooder,
     exportData, 
     importData,
     batchUpdateEntries,
     theme,
     setTheme
-  } = useSpider();
+  } = useTarantula();
 
-  const [newSpiderName, setNewSpiderName] = useState('');
+  const [newSpooderName, setNewSpooderName] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   
   // OCR States
@@ -39,11 +39,11 @@ const Settings = () => {
   const [ocrText, setOcrText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const handleAddSpider = (e) => {
+  const handleAddSpooder = (e) => {
     e.preventDefault();
-    if (newSpiderName) {
-      addSpider(newSpiderName);
-      setNewSpiderName('');
+    if (newSpooderName) {
+      addSpooder(newSpooderName);
+      setNewSpooderName('');
       setShowAddModal(false);
     }
   };
@@ -92,16 +92,19 @@ const Settings = () => {
 
       const today = format(new Date(), 'yyyy-MM-dd');
       const prompt = `
-        Based on the following notes, extract spider care data. 
+        Based on the following notes, extract tarantula ("spooder") care data. 
         Notes: "${ocrText}"
         Current Year: ${new Date().getFullYear()}
         
-        Spiders currently in the journal: ${activeSpiders.map(s => `ID: ${s.id}, Name: ${s.name}`).join('; ')}
+        Spooders currently in the journal: ${activeSpooders.map(s => `ID: ${s.id}, Name: ${s.name}`).join('; ')}
         
         Rules:
         1. Identify the date. Use YYYY-MM-DD format. If no date is found, use "${today}".
-        2. Identify care actions: feeding/fed, watering/watered, molting/molted.
-        3. Match spiders to the provided list. If you find a new spider, use spiderId: "new_[name]".
+        2. Identify care actions: feeding/fed, watering/watered, molting/molted. 
+           CRITICAL: If the text implies a spooder was fed (e.g. "gave roach", "fed", "ate", "ate cricket", "fed dubia"), set feeding: true. 
+           If it was watered (e.g. "refilled bowl", "watered", "mist"), set watering: true.
+           If it molted (e.g. "shiny new skin", "molted"), set molting: true.
+        3. Match spooders to the provided list. If you find a new spooder name not in the list, use spooderId: "new_[name]".
         4. If you are unsure about an entry, add a specific warning for that entry.
         
         Return a JSON object:
@@ -109,8 +112,8 @@ const Settings = () => {
           "date": "YYYY-MM-DD",
           "entries": [
             { 
-              "spiderId": "string", 
-              "spiderName": "string", 
+              "spooderId": "string", 
+              "spooderName": "string", 
               "feeding": boolean, 
               "watering": boolean, 
               "molting": boolean, 
@@ -139,10 +142,9 @@ const Settings = () => {
       const rawResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       
       if (!rawResponse) {
-        throw new Error("AI returned an empty response. This usually happens if the prompt is blocked or the text is too confusing.");
+        throw new Error("AI returned an empty response.");
       }
 
-      // Robust JSON extraction
       let resultText = rawResponse;
       const startIdx = rawResponse.indexOf('{');
       const endIdx = rawResponse.lastIndexOf('}');
@@ -161,23 +163,21 @@ const Settings = () => {
       if (parsed) {
         const entryDate = parsed.date || today;
         const warnings = [];
-        // if (parsed.generalWarning) warnings.push(`System: ${parsed.generalWarning}`); // Removed as per instruction, not in new code
-        
         const finalEntries = {};
-        const newSpiderNames = [];
+        const newSpooderNames = [];
         const entryMapping = [];
 
         const rawEntries = Array.isArray(parsed.entries) ? parsed.entries : [];
         
         rawEntries.forEach(entry => {
           if (!entry) return;
-          if (entry.warning) warnings.push(`${entry.spiderName || 'Unknown'}: ${entry.warning}`);
+          if (entry.warning) warnings.push(`${entry.spooderName || 'Unknown'}: ${entry.warning}`);
           
-          if (entry.spiderId && entry.spiderId.startsWith('new_')) {
-            newSpiderNames.push(entry.spiderName);
+          if (entry.spooderId && entry.spooderId.startsWith('new_')) {
+            newSpooderNames.push(entry.spooderName);
             entryMapping.push(entry);
-          } else if (entry.spiderId) {
-            finalEntries[entry.spiderId] = {
+          } else if (entry.spooderId) {
+            finalEntries[entry.spooderId] = {
               feeding: !!entry.feeding,
               watering: !!entry.watering,
               molting: !!entry.molting,
@@ -186,12 +186,12 @@ const Settings = () => {
           }
         });
 
-        if (newSpiderNames.length > 0) {
-          const createdSpiders = batchAddSpiders([...new Set(newSpiderNames)]);
+        if (newSpooderNames.length > 0) {
+          const createdSpooders = batchAddSpooders([...new Set(newSpooderNames)]);
           entryMapping.forEach(entry => {
-            const realSpider = createdSpiders.find(s => s.name === entry.spiderName);
-            if (realSpider) {
-              finalEntries[realSpider.id] = {
+            const realSpooder = createdSpooders.find(s => s.name === entry.spooderName);
+            if (realSpooder) {
+              finalEntries[realSpooder.id] = {
                 feeding: !!entry.feeding,
                 watering: !!entry.watering,
                 molting: !!entry.molting,
@@ -204,8 +204,8 @@ const Settings = () => {
         batchUpdateEntries(entryDate, finalEntries);
 
         let message = `Import successful for ${entryDate}!`;
-        if (newSpiderNames.length > 0) {
-          message += `\n\nAdded new spiders: ${[...new Set(newSpiderNames)].join(', ')}`;
+        if (newSpooderNames.length > 0) {
+          message += `\n\nAdded new spooders: ${[...new Set(newSpooderNames)].join(', ')}`;
         }
         if (warnings.length > 0) {
           message += `\n\n⚠️ Issues Found:\n- ${warnings.join('\n- ')}`;
@@ -214,7 +214,7 @@ const Settings = () => {
         alert(message);
         setOcrText('');
       } else {
-        throw new Error("AI response was valid JSON but empty or in the wrong format.");
+        throw new Error("Invalid AI response format.");
       }
     } catch (err) {
       console.error("AI Parse Error:", err);
@@ -264,25 +264,25 @@ const Settings = () => {
         <div className="section-header">
           <Bug size={24} className="accent-icon" />
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-            <h2>Spiders</h2>
+            <h2>Spooders</h2>
             <button onClick={() => setShowAddModal(true)} className="btn-primary glass" style={{ padding: '0.5rem 1rem' }}>
               <Plus size={18} />
-              <span>Add Spider</span>
+              <span>Add Spooder</span>
             </button>
           </div>
         </div>
 
-        <div className="active-spiders-list">
-          {activeSpiders.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No spiders added yet.</p>
+        <div className="active-spooders-list">
+          {activeSpooders.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No spooders added yet.</p>
           ) : (
-            activeSpiders.map(spider => (
-              <div key={spider.id} className="spider-item glass">
-                <span>{spider.name}</span>
+            activeSpooders.map(spooder => (
+              <div key={spooder.id} className="spooder-item glass">
+                <span>{spooder.name}</span>
                 <button 
-                  onClick={() => deleteSpider(spider.id)} 
+                  onClick={() => deleteSpooder(spooder.id)} 
                   className="btn-icon delete-btn"
-                  title="Remove Spider"
+                  title="Remove Spooder"
                 >
                   <Trash2 size={16} color="var(--error)" />
                 </button>
@@ -350,7 +350,7 @@ const Settings = () => {
             <div className="data-actions" style={{ marginTop: '1rem' }}>
               <button className="btn-primary" onClick={createEntriesFromText} disabled={isAnalyzing}>
                 {isAnalyzing ? <Loader2 className="spin" /> : <Sparkles size={16} />}
-                <span>Process & Add Spiders</span>
+                <span>Process & Add Spooders</span>
               </button>
               <button className="btn-secondary" onClick={() => setOcrText('')}>
                 Discard
@@ -363,14 +363,14 @@ const Settings = () => {
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content glass-card">
-            <h2>Add New Spider</h2>
-            <form onSubmit={handleAddSpider}>
+            <h2>Add New Spooder</h2>
+            <form onSubmit={handleAddSpooder}>
               <div className="form-group">
-                <label>Spider Name</label>
+                <label>Spooder Name</label>
                 <input 
                   type="text" 
-                  value={newSpiderName} 
-                  onChange={(e) => setNewSpiderName(e.target.value)}
+                  value={newSpooderName} 
+                  onChange={(e) => setNewSpooderName(e.target.value)}
                   placeholder="e.g. Edgar"
                   autoFocus
                   required
@@ -378,7 +378,7 @@ const Settings = () => {
               </div>
               <div className="modal-actions">
                 <button type="button" onClick={() => setShowAddModal(false)} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary">Add Spider</button>
+                <button type="submit" className="btn-primary">Add Spooder</button>
               </div>
             </form>
           </div>

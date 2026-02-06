@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
-import { useSpider } from '../context/SpiderContext';
+import { useTarantula } from '../context/TarantulaContext';
 import { format } from 'date-fns';
 import { Skull, PlusCircle } from 'lucide-react';
 
 const Deceased = () => {
-  const { deceasedSpiders, activeSpiders, markAsDeceased } = useSpider();
+  const { deceasedSpooders, activeSpooders, markAsDeceased } = useTarantula();
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedSpiderId, setSelectedSpiderId] = useState('');
+  const [selectedSpooderId, setSelectedSpooderId] = useState('');
   const [deceasedDate, setDeceasedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [notes, setNotes] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!selectedSpiderId) return;
-    markAsDeceased(selectedSpiderId, deceasedDate, notes);
+    if (!selectedSpooderId) return;
+    markAsDeceased(selectedSpooderId, deceasedDate, notes);
     setShowAddModal(false);
-    setSelectedSpiderId('');
+    setSelectedSpooderId('');
     setNotes('');
   };
 
@@ -30,19 +30,19 @@ const Deceased = () => {
       </header>
 
       <div className="deceased-list">
-        {deceasedSpiders.length === 0 ? (
+        {deceasedSpooders.length === 0 ? (
           <div className="empty-state glass-card">
             <Skull size={48} className="icon-subtle" />
-            <p>No spiders have passed away. That's a good thing!</p>
+            <p>No spooders have passed away. That's a good thing!</p>
           </div>
         ) : (
-          deceasedSpiders.map(spider => (
-            <div key={spider.id} className="deceased-card glass-card">
+          deceasedSpooders.map(spooder => (
+            <div key={spooder.id} className="deceased-card glass-card">
               <div className="card-header">
-                <h3>{spider.name}</h3>
-                <span className="date-badge">{format(new Date(spider.deceasedDate), 'MMM do, yyyy')}</span>
+                <h3>{spooder.name}</h3>
+                <span className="date-badge">{format(new Date(spooder.deceasedDate), 'MMM do, yyyy')}</span>
               </div>
-              <p className="deceased-notes">{spider.deceasedNotes || 'No notes added.'}</p>
+              <p className="deceased-notes">{spooder.deceasedNotes || 'No notes added.'}</p>
             </div>
           ))
         )}
@@ -54,14 +54,14 @@ const Deceased = () => {
             <h2>Mark as Deceased</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Select Spider</label>
+                <label>Select Spooder</label>
                 <select 
-                  value={selectedSpiderId} 
-                  onChange={(e) => setSelectedSpiderId(e.target.value)}
+                  value={selectedSpooderId} 
+                  onChange={(e) => setSelectedSpooderId(e.target.value)}
                   required
                 >
-                  <option value="">Choose a spider...</option>
-                  {activeSpiders.map(s => (
+                  <option value="">Choose a spooder...</option>
+                  {activeSpooders.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>

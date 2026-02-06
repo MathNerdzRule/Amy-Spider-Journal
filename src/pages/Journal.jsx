@@ -1,18 +1,20 @@
-import React from 'react';
-import { useSpider } from '../context/SpiderContext';
+import React, { useState } from 'react';
+import { useTarantula } from '../context/TarantulaContext';
 import { format, addDays, subDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, StickyNote, X } from 'lucide-react';
 
 const Journal = () => {
   const { 
-    activeSpiders, 
+    activeSpooders, 
     entries, 
     selectedDate, 
     setSelectedDate, 
     dateKey, 
     updateEntry, 
     selectAll 
-  } = useSpider();
+  } = useTarantula();
+
+  const [noteModal, setNoteModal] = useState(null); // { spooderId, name }
 
   const dayEntries = entries[dateKey] || {};
 
@@ -20,10 +22,18 @@ const Journal = () => {
   const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1));
   const handleToday = () => setSelectedDate(new Date());
 
+  const openNoteModal = (spooderId, name) => {
+    setNoteModal({ spooderId, name });
+  };
+
+  const closeNoteModal = () => {
+    setNoteModal(null);
+  };
+
   return (
     <div className="journal-page">
       <header className="page-header">
-        <h1>Amy's Spider Journal</h1>
+        <h1>Amy's Tarantula Journal</h1>
         <div className="date-selector">
           <button onClick={handlePrevDay} className="btn-icon"><ChevronLeft /></button>
           <span onClick={handleToday} style={{ cursor: 'pointer' }}>
@@ -34,10 +44,10 @@ const Journal = () => {
       </header>
 
       <div className="table-container glass">
-        <table className="spider-table">
+        <table className="spooder-table">
           <thead>
             <tr>
-              <th>Spider</th>
+              <th>Spooder</th>
               <th>
                 <div className="header-cell">
                   <span>Fed</span>
@@ -78,39 +88,41 @@ const Journal = () => {
             </tr>
           </thead>
           <tbody>
-            {activeSpiders.map(spider => {
-              const entry = dayEntries[spider.id] || { feeding: false, watering: false, molting: false, notes: '' };
+            {activeSpooders.map(spooder => {
+              const entry = dayEntries[spooder.id] || { feeding: false, watering: false, molting: false, notes: '' };
               return (
-                <tr key={spider.id}>
-                  <td className="spider-name">{spider.name}</td>
+                <tr key={spooder.id}>
+                  <td className="spooder-name">{spooder.name}</td>
                   <td>
                     <input 
                       type="checkbox" 
                       checked={entry.feeding} 
-                      onChange={(e) => updateEntry(spider.id, 'feeding', e.target.checked)}
+                      onChange={(e) => updateEntry(spooder.id, 'feeding', e.target.checked)}
                     />
                   </td>
                   <td>
                     <input 
                       type="checkbox" 
                       checked={entry.watering} 
-                      onChange={(e) => updateEntry(spider.id, 'watering', e.target.checked)}
+                      onChange={(e) => updateEntry(spooder.id, 'watering', e.target.checked)}
                     />
                   </td>
                   <td>
                     <input 
                       type="checkbox" 
                       checked={entry.molting} 
-                      onChange={(e) => updateEntry(spider.id, 'molting', e.target.checked)}
+                      onChange={(e) => updateEntry(spooder.id, 'molting', e.target.checked)}
                     />
                   </td>
-                  <td>
-                    <textarea 
-                      value={entry.notes} 
-                      onChange={(e) => updateEntry(spider.id, 'notes', e.target.value)}
-                      placeholder="Add notes..."
-                      rows="1"
-                    />
+                  <td className="notes-column">
+                    <button 
+                      onClick={() => openNoteModal(spooder.id, spooder.name)}
+                      className={`btn-icon notes-trigger ${entry.notes ? 'has-notes' : ''}`}
+                      title="Edit Notes"
+                    >
+                      <StickyNote size={18} />
+                      {entry.notes && <div className="note-indicator" />}
+                    </button>
                   </td>
                 </tr>
               );
@@ -118,6 +130,31 @@ const Journal = () => {
           </tbody>
         </table>
       </div>
+
+      {noteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-card note-modal">
+            <div className="modal-header">
+              <div>
+                <h2>{noteModal.name}</h2>
+                <p className="modal-subtitle">{format(selectedDate, 'MMMM do, yyyy')}</p>
+              </div>
+              <button onClick={closeNoteModal} className="btn-icon"><X size={24} /></button>
+            </div>
+            
+            <textarea 
+              value={dayEntries[noteModal.spooderId]?.notes || ''} 
+              onChange={(e) => updateEntry(noteModal.spooderId, 'notes', e.target.value)}
+              placeholder="Type your notes here..."
+              autoFocus
+            />
+            
+            <div className="modal-actions">
+              <button onClick={closeNoteModal} className="btn-primary">Ok</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

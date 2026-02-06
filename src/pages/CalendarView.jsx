@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSpider } from '../context/SpiderContext';
+import { useTarantula } from '../context/TarantulaContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   format, 
@@ -16,7 +16,7 @@ import {
 import { ChevronLeft, ChevronRight, Activity } from 'lucide-react';
 
 const CalendarView = () => {
-  const { entries, setSelectedDate } = useSpider();
+  const { entries, setSelectedDate } = useTarantula();
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -37,7 +37,6 @@ const CalendarView = () => {
     const dayEntry = entries[key];
     if (!dayEntry) return null;
     
-    const spiderCount = Object.keys(dayEntry).length;
     const actions = [];
     Object.values(dayEntry).forEach(e => {
       if (e.feeding) actions.push('F');
