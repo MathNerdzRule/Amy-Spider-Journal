@@ -13,13 +13,15 @@ import {
   Loader2, 
   Sparkles,
   Bug,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 const Settings = () => {
   const { 
     activeSpiders, 
     addSpider, 
+    batchAddSpiders,
     deleteSpider,
     exportData, 
     importData,
@@ -89,17 +91,29 @@ const Settings = () => {
 
       const prompt = `
         Based on the following notes, extract spider care data.
-        Spiders currently in the journal: ${activeSpiders.map(s => `${s.id}: ${s.name}`).join(', ')}
+        Spiders currently in the journal: ${activeSpiders.map(s => `ID: ${s.id}, Name: ${s.name}`).join('; ')}
         Notes: "${ocrText}"
+        
+        Rules:
+        1. Identify spiders. If a spider is mentioned but not in the ID list above, create a temporary ID starting with "new_".
+        2. Be strict. If you are unsure about a spider's identity or the care action (fed/watered/molted), include a "warning".
         
         Return ONLY a JSON object in this format:
         {
           "date": "YYYY-MM-DD",
-          "entries": {
-            "spiderId": { "feeding": boolean, "watering": boolean, "molting": boolean, "notes": "string" }
-          }
+          "entries": [
+            { 
+              "spiderId": "string", 
+              "spiderName": "string", 
+              "feeding": boolean, 
+              "watering": boolean, 
+              "molting": boolean, 
+              "notes": "string",
+              "warning": "string | null" 
+            }
+          ],
+          "generalWarning": "string | null"
         }
-        If multiple dates are found, return only the most recent one.
       `;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -116,13 +130,65 @@ const Settings = () => {
       const parsed = JSON.parse(resultText);
       
       if (parsed.date && parsed.entries) {
-        batchUpdateEntries(parsed.date, parsed.entries);
-        alert("Entries created successfully for " + parsed.date);
+        const warnings = [];
+        if (parsed.generalWarning) warnings.push(`System: ${parsed.generalWarning}`);
+        
+        const finalEntries = {};
+        const newSpiderNames = [];
+        const entryMapping = []; // { tempId, spiderData }
+
+        // First pass: identify new spiders and prepare entries
+        parsed.entries.forEach(entry => {
+          if (entry.warning) warnings.push(`${entry.spiderName}: ${entry.warning}`);
+          
+          if (entry.spiderId.startsWith('new_')) {
+            newSpiderNames.push(entry.spiderName);
+            entryMapping.push(entry);
+          } else {
+            finalEntries[entry.spiderId] = {
+              feeding: entry.feeding,
+              watering: entry.watering,
+              molting: entry.molting,
+              notes: entry.notes
+            };
+          }
+        });
+
+        // Add new spiders to system
+        if (newSpiderNames.length > 0) {
+          const createdSpiders = batchAddSpiders([...new Set(newSpiderNames)]);
+          // Map temp IDs to real IDs
+          entryMapping.forEach(entry => {
+            const realSpider = createdSpiders.find(s => s.name === entry.spiderName);
+            if (realSpider) {
+              finalEntries[realSpider.id] = {
+                feeding: entry.feeding,
+                watering: entry.watering,
+                molting: entry.molting,
+                notes: entry.notes
+              };
+            }
+          });
+        }
+
+        // Save entries
+        batchUpdateEntries(parsed.date, finalEntries);
+
+        // Show comprehensive alert
+        let message = `Import successful for ${parsed.date}!`;
+        if (newSpiderNames.length > 0) {
+          message += `\n\nAdded new spiders: ${[...new Set(newSpiderNames)].join(', ')}`;
+        }
+        if (warnings.length > 0) {
+          message += `\n\n⚠️ Issues Found:\n- ${warnings.join('\n- ')}`;
+        }
+        
+        alert(message);
         setOcrText('');
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to parse entries. AI might have had trouble with the format.");
+      alert("Failed to parse entries. AI might have had trouble with the format or quality of the image.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -239,7 +305,7 @@ const Settings = () => {
             <div className="data-actions" style={{ marginTop: '1rem' }}>
               <button className="btn-primary" onClick={createEntriesFromText} disabled={isAnalyzing}>
                 {isAnalyzing ? <Loader2 className="spin" /> : <Sparkles size={16} />}
-                <span>Process with AI</span>
+                <span>Process & Add Spiders</span>
               </button>
               <button className="btn-secondary" onClick={() => setOcrText('')}>
                 Discard

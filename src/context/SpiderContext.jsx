@@ -145,6 +145,15 @@ export const SpiderProvider = ({ children }) => {
     setActiveSpiders(prev => prev.filter(s => s.id !== id));
   };
 
+  const batchAddSpiders = (names) => {
+    const newSpiders = names.map((name, index) => ({
+      id: (Date.now() + index).toString(),
+      name
+    }));
+    setActiveSpiders(prev => [...prev, ...newSpiders]);
+    return newSpiders;
+  };
+
   return (
     <SpiderContext.Provider value={{
       activeSpiders,
@@ -162,6 +171,7 @@ export const SpiderProvider = ({ children }) => {
       exportData,
       importData,
       addSpider,
+      batchAddSpiders,
       deleteSpider
     }}>
       {children}
